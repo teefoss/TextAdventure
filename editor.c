@@ -8,13 +8,6 @@
 #define CONSOLE_W   53
 #define CONSOLE_H   21
 
-#define WRAP(n, min, max)   \
-     if ( n < min) {        \
-          n = max;          \
-     } else if ( n > max) { \
-          n = min;          \
-     }
-
 char file_name[80];
 map_t map;
 cell_t cursor = 0x0902; // character to insert
@@ -149,25 +142,33 @@ void PrintCharDisplay(u16 value, const char * title, int x, int y)
     int line = y;
     DOS_GotoXY(x, line);
     
+    // left column : char display
+    
+    DOS_SetMargin(x);
     DOS_SetBackground(DOS_BLACK);
     DOS_SetForeground(DOS_WHITE);
-    DOS_PrintString("   ");
-    DOS_SetBackground(DOS_GRAY);
-    DOS_PrintString(" %s", title);
-    DOS_GotoXY(x, ++line);
-    
-    DOS_SetBackground(DOS_BLACK);
-    DOS_PrintString(" ");
+    DOS_PrintString("   \n");
+    DOS_PrintString("   \n");
+    DOS_PrintString("   \n");
+    DOS_GotoXY(x + 1, y + 1);
     PrintChar(value);
-    DOS_SetBackground(DOS_BLACK);
-    DOS_PrintString(" ");
+    
+    // right column : char info
+    
+    DOS_SetMargin(x + 4);
+    DOS_GotoXY(x + 4, y);
     DOS_SetBackground(DOS_GRAY);
     DOS_SetForeground(DOS_WHITE);
-    DOS_PrintString(" %04X", value);
-    DOS_GotoXY(x, ++line);
+    DOS_PrintString("%s\n", title);
+    DOS_PrintString("%04X\n", value);
     
-    DOS_SetBackground(DOS_BLACK);
-    DOS_PrintString("   ");
+    DOS_SetForeground(DOS_BRIGHT_GREEN);
+
+    for ( int i = 0; i < num_generics; i++ ) {
+        if ( value && generics[i].map[0] == value ) {
+            DOS_PrintString("%s", generics[i].name);
+        }
+    }
 }
 
 
@@ -316,14 +317,7 @@ int main(int argc, char ** argv)
                 DOS_PrintChar(CH(cursor));
             }
         }
-
-        // GENERIC INFO
-        
-        DOS_GotoXY(color_map_x, DOS_GetY() + 1);
-        DOS_SetMargin(color_map_x);
-//        DOS_PrintString("%s");
-        
-        
+                
         DOS_SetForeground(DOS_BRIGHT_WHITE);
         DOS_GotoXY(cx + map_x, cy + map_y);
         

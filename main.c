@@ -1,35 +1,31 @@
 #include "generic.h"
 #include "map.h"
+#include "player.h"
 
 #include <stdio.h>
 #include <textmode.h>
 
+#define WINDOW_SCALE 2
 #define SCREEN_MARGIN 8
 
-typedef struct
-{
-    int x;
-    int y;
-} Point;
-
-typedef struct
-{
-    const char * location;
-    Point position;
-} Player;
-
+// a rectangle area of the screen with its own console
 typedef struct
 {
     DOS_Console * console;
     SDL_Point window_location;
+    
+    int hud_color;
+    char hud[100];
+    
+    // console info
     int mode;
     int w;
     int h;
     int scale;
-} Console;
+} Area;
 
 
-Console text_con = {
+Area text_area = {
     .console = NULL,
     .window_location = {
         .x = SCREEN_MARGIN,
@@ -41,7 +37,8 @@ Console text_con = {
     .scale = 1
 };
 
-Console map_con = {
+
+Area map_area = {
     .console = NULL,
     .window_location = {
         .x = 0, // initted in main
@@ -54,26 +51,20 @@ Console map_con = {
 };
 
 
-Player player = {
-    .location = "basement",
-    .position = { 0, 0 } // inited on map load
-};
-
-
-void RenderConsole(Console * con)
+void RenderArea(Area * area)
 {
     DOS_RenderConsole
-    (   con->console,
-        con->window_location.x,
-        con->window_location.y );
+    (   area->console,
+        area->window_location.x,
+        area->window_location.y );
 }
 
 
-SDL_Rect ConsoleSizePixels(Console * con)
+SDL_Rect AreaSizePixels(Area * area)
 {
     SDL_Rect r;
-    r.w = con->w * DOS_CHAR_WIDTH * con->scale;
-    r.h = con->h * con->mode * con->scale;
+    r.w = area->w * DOS_CHAR_WIDTH * area->scale;
+    r.h = area->h * area->mode * area->scale;
     
     return r;
 }
@@ -82,25 +73,85 @@ SDL_Rect ConsoleSizePixels(Console * con)
 void PrintCurrentLocation()
 {
     Generic * gen = FindGenericWithTag(player.location);
-    
-    if ( gen == NULL ) {
-        fprintf(stderr, "Player location not found! (%s)\n", player.location);
-        exit(EXIT_FAILURE);
-    }
-    
-    DOS_ClearConsole(text_con.console);
-    DOS_CPrintString(text_con.console, "You are in %s\n\n", gen->name);
-    DOS_CPrintString(text_con.console, "%s", gen->description);
+        
+    DOS_ClearConsole(text_area.console);
+    DOS_CPrintString(text_area.console, "You are in %s.\n\n", gen->name);
+    DOS_CPrintString(text_area.console, "%s", gen->description);
+    DOS_CSetForeground(text_area.console, text_area.hud_color);
+    DOS_CPrintString(text_area.console, "\n\n%s", text_area.hud);
 
-    PrintMap(gen->map, map_con.console);
+    DOS_ClearConsole(map_area.console);
+    PrintMap(gen->map, map_area.console);
+    PrintCell(CELL_PLAYER, map_area.console, player.x, player.y);
 }
 
 
-void InitConsole(Console * con, SDL_Renderer * renderer)
+void InitArea(Area * area, SDL_Renderer * renderer)
 {
-    con->console = DOS_CreateConsole(renderer, con->w, con->h, con->mode);
-    DOS_CSetCursorType(con->console, DOS_CURSOR_NONE);
-    DOS_CSetScale(con->console, con->scale);
+    area->console = DOS_CreateConsole(renderer, area->w, area->h, area->mode);
+    DOS_CSetCursorType(area->console, DOS_CURSOR_NONE);
+    DOS_CSetScale(area->console, area->scale);
+}
+
+
+void TryMovePlayerTo(int x, int y)
+{
+    WRAP(player.x, 0, MAP_SIZE - 1); // correct weird values
+    WRAP(player.y, 0, MAP_SIZE - 1);
+
+    // get the cell we're stepping into
+    Generic * location = FindGenericWithTag(player.location); // TODO: NULL?
+    cell_t * cell = GetCell(location->map, x, y);
+    
+    // there's something there
+    if ( *cell ) {
+        // check what it is
+        Generic * thing = FindGenericWithCell(*cell);
+        
+        if ( thing == NULL ) { // cell not in generics list, solid by default
+            return;
+        }
+        
+        if ( thing->flags & FLAG_SOLID ) {
+            return;
+        }
+        
+        if ( thing->flags & FLAG_COLLECTIBLE ) {
+            if ( player.num_items == MAX_INVENTORY_ITEMS ) {
+                strcpy(text_area.hud, "You can't carry any more!");
+                text_area.hud_color = DOS_RED;
+            } else {
+                player.inventory[player.num_items++] = thing->tag;
+                *cell = 0;
+                sprintf(text_area.hud, "You got a %s!", thing->name);
+                text_area.hud_color = DOS_BRIGHT_GREEN;
+            }
+        }
+    }
+    
+    player.x = x;
+    player.y = y;
+}
+
+
+void ProcessGameKeydown(SDL_Keycode key)
+{
+    switch ( key ) {
+        case SDLK_UP:
+            TryMovePlayerTo(player.x, player.y - 1);
+            break;
+        case SDLK_DOWN:
+            TryMovePlayerTo(player.x, player.y + 1);
+            break;
+        case SDLK_LEFT:
+            TryMovePlayerTo(player.x - 1, player.y);
+            break;
+        case SDLK_RIGHT:
+            TryMovePlayerTo(player.x + 1, player.y);
+            break;
+        default:
+            break;
+    }
 }
 
 
@@ -111,41 +162,21 @@ int main()
         return EXIT_FAILURE;
     }
     
-    SDL_Rect text_con_rect = ConsoleSizePixels(&text_con);
-    SDL_Rect map_con_rect = ConsoleSizePixels(&map_con);
+    SDL_Rect text_area_rect = AreaSizePixels(&text_area);
+    SDL_Rect map_area_rect = AreaSizePixels(&map_area);
     
-    SDL_Window * window = SDL_CreateWindow
-    (   "TQ",
-        0,
-        0,
-        text_con_rect.w + map_con_rect.w + SCREEN_MARGIN * 3,
-        text_con_rect.h + SCREEN_MARGIN * 2,
-        0 );
+    int w = text_area_rect.w + map_area_rect.w + SCREEN_MARGIN * 3;
+    int h = text_area_rect.h + SCREEN_MARGIN * 2;
+    SDL_Window * window = SDL_CreateWindow("TQ", 0, 0, w * WINDOW_SCALE, h * WINDOW_SCALE, 0);
     
     SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_RenderSetLogicalSize(renderer, w, h);
     
-    InitConsole(&text_con, renderer);
-    InitConsole(&map_con, renderer);
-    map_con.window_location.x = text_con_rect.w + SCREEN_MARGIN * 2;
+    InitArea(&text_area, renderer);
+    InitArea(&map_area, renderer);
+    map_area.window_location.x = text_area_rect.w + SCREEN_MARGIN * 2;
         
-    // load maps
-    
-    int num_generics = NumGenerics();
-    for ( int i = 0; i < num_generics; i++ ) {
-        char file_name[100] = { 0 };
-        strcpy(file_name, generics[i].tag);
-        strcat(file_name, ".map");
-        
-        FILE * map_file = fopen(file_name, "r");
-        if ( map_file ) {
-            fread(generics[i].map, sizeof(cell_t), MAP_SIZE*MAP_SIZE, map_file);
-        }
-    }
-    
-    // init player
-    
-    player.location = "basement";
-
+    LoadGenerics();
     
     bool running = true;
     while ( running ) {
@@ -154,6 +185,9 @@ int main()
             switch (event.type) {
                 case SDL_QUIT:
                     running = false;
+                    break;
+                case SDL_KEYDOWN:
+                    ProcessGameKeydown(event.key.keysym.sym);
                     break;
                 default:
                     break;
@@ -165,16 +199,16 @@ int main()
         
         PrintCurrentLocation();
         
-        RenderConsole(&text_con);
-        RenderConsole(&map_con);
+        RenderArea(&text_area);
+        RenderArea(&map_area);
         
         SDL_RenderPresent(renderer);
         
         DOS_LimitFrameRate(25);
     };
     
-    DOS_FreeConsole(text_con.console);
-    DOS_FreeConsole(map_con.console);
+    DOS_FreeConsole(text_area.console);
+    DOS_FreeConsole(map_area.console);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

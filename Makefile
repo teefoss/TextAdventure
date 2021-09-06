@@ -2,7 +2,7 @@ CC		= clang
 CFLAGS	= -Wall -Wextra -Wshadow -Werror -g
 LINK	= -lSDL2 -ltextmode
 DIAGOPT = -fno-show-column -fno-caret-diagnostics
-OBJ		= generic.o map.o
+OBJ		= generic.o map.o player.o
 
 CFLAGS += $(DIAGOPT)
 

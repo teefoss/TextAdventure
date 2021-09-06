@@ -3,9 +3,12 @@
 
 #include "map.h"
 
+#define CELL_PLAYER 0x0902
+
 typedef enum
 {
     FLAG_SOLID, // level objects
+    FLAG_INVISIBLE,
     FLAG_COLLECTIBLE, // items
     FLAG_LINK,
 } GenericFlags;
@@ -24,7 +27,7 @@ typedef struct generic
 {
     const char * tag;
     const char * name;
-    const char * description;
+    char * description;
     const char * links[DIR_COUNT]; // tags that this object links to
     GenericFlags flags;
     map_t map;
@@ -33,8 +36,10 @@ typedef struct generic
 } Generic;
 
 extern Generic generics[];
+extern int num_generics;
 
-int NumGenerics(void);
+void LoadGenerics(void);
 Generic * FindGenericWithTag(const char * tag);
+Generic * FindGenericWithCell(cell_t cell);
 
 #endif /* location_h */
