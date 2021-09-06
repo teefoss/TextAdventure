@@ -14,11 +14,11 @@ typedef u16 cell_t; // one cell in a map
 #define CX_MASK 0x000F // character col
 #define CH_MASK (CY_MASK | CX_MASK) // ascii character
 
-#define BG(a) ((a & BG_MASK) >> 12)
-#define FG(a) ((a & FG_MASK) >> 8)
-#define CY(a) ((a & CY_MASK) >> 4)
-#define CX(a) ((a & CX_MASK) >> 0)
-#define CH(a) ((a & CH_MASK))
+#define BG(cell) ((cell & BG_MASK) >> 12)
+#define FG(cell) ((cell & FG_MASK) >> 8)
+#define CY(cell) ((cell & CY_MASK) >> 4)
+#define CX(cell) ((cell & CX_MASK) >> 0)
+#define CH(cell) ((cell & CH_MASK))
 
 typedef cell_t map_t[MAP_SIZE * MAP_SIZE];
 

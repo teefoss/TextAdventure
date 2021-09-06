@@ -6,7 +6,12 @@
 
 int num_generics;
 
-Generic generics[] = {
+//
+// GENERICS LIST
+//
+
+Generic generics[] =
+{
     {
         .tag = "player",
         .name = "Player",
