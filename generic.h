@@ -10,7 +10,7 @@ typedef enum
     FLAG_SOLID          = 0x0001, // level objects
     FLAG_INVISIBLE      = 0x0002, // object is not drawn
     FLAG_COLLECTIBLE    = 0x0004, // items, player can pick it up
-    FLAG_LINK           = 0x0008 // ?
+    FLAG_LINK           = 0x0008  // ?
 } GenericFlags;
 
 typedef enum
@@ -46,7 +46,7 @@ typedef struct generic
     GenericFlags flags;
     
     // if a location, this is automatically loaded from file (tag.map)
-    // it an object/actor, the first element is defined in the generics list
+    // if an object/actor, the first element is defined in the generics list
     // this is its appearance
     map_t map;
     
@@ -58,6 +58,6 @@ extern int num_generics;
 
 void LoadGenerics(void);
 Generic * FindGenericWithTag(const char * tag);
-Generic * FindGenericWithCell(cell_t cell);
+Generic * FindGenericWithGlyph(Glyph glyph);
 
 #endif /* location_h */

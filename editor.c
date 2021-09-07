@@ -10,7 +10,7 @@
 
 char file_name[80];
 map_t map;
-cell_t cursor = 0x0902; // character to insert
+Glyph cursor = 0x0902; // character to insert
 unsigned cx, cy; // cursor location
 bool dirty;
 
@@ -49,7 +49,7 @@ bool ProcessKey(SDL_Keycode key)
                     fprintf(stderr, "failed to save map!\n");
                 }
                 
-                fwrite(map, sizeof(cell_t), MAP_SIZE * MAP_SIZE, map_file);
+                fwrite(map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
                 dirty = false;
             } else {
                 cy++;
@@ -103,20 +103,20 @@ bool ProcessKey(SDL_Keycode key)
             }
             break;
         case SDLK_u:
-            cursor = *GetCell(map, cx, cy);
+            cursor = *GetGlyph(map, cx, cy);
             break;
         case SDLK_q:
             if ( mods & KMOD_CTRL ) {
                 return false;
             }
         case SDLK_SPACE: {
-            cell_t * cell = GetCell(map, cx, cy);
-            *cell = cursor;
+            Glyph * glyph = GetGlyph(map, cx, cy);
+            *glyph = cursor;
             dirty = true;
             break;
         }
         case SDLK_e:
-            *GetCell(map, cx, cy) = 0;
+            *GetGlyph(map, cx, cy) = 0;
             dirty = true;
             break;
         default:
@@ -243,7 +243,7 @@ int main(int argc, char ** argv)
                     DOS_PrintString("%X", x);
                 }
                 DOS_GotoXY(x + map_x, y + map_y);
-                PrintChar(x == cx && y == cy ? cursor : *GetCell(map, x, y));
+                PrintChar(x == cx && y == cy ? cursor : *GetGlyph(map, x, y));
             }
         }
 
@@ -253,7 +253,7 @@ int main(int argc, char ** argv)
 
         char buf[32] = { 0 };
         snprintf(buf, 32, "Map (%2d,%2d)", cx, cy);
-        PrintCharDisplay(*GetCell(map, cx, cy), buf, map_x, DOS_GetY() + 1);
+        PrintCharDisplay(*GetGlyph(map, cx, cy), buf, map_x, DOS_GetY() + 1);
 
         DOS_SetBackground(DOS_GRAY);
                 

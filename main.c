@@ -82,7 +82,7 @@ void PrintCurrentLocation()
 
     DOS_ClearConsole(map_area.console);
     PrintMap(gen->map, map_area.console);
-    PrintCell(CELL_PLAYER, map_area.console, player.x, player.y);
+    PrintGlyph(CELL_PLAYER, map_area.console, player.x, player.y);
 }
 
 
@@ -99,16 +99,16 @@ void TryMovePlayerTo(int x, int y)
     WRAP(player.x, 0, MAP_SIZE - 1); // correct weird values
     WRAP(player.y, 0, MAP_SIZE - 1);
 
-    // get the cell we're stepping into
+    // get the glyph we're stepping into
     Generic * location = FindGenericWithTag(player.location); // TODO: NULL?
-    cell_t * cell = GetCell(location->map, x, y);
+    Glyph * glyph = GetGlyph(location->map, x, y);
     
     // there's something there
-    if ( *cell ) {
+    if ( *glyph ) {
         // check what it is
-        Generic * thing = FindGenericWithCell(*cell);
+        Generic * thing = FindGenericWithGlyph(*glyph);
         
-        if ( thing == NULL ) { // cell not in generics list, solid by default
+        if ( thing == NULL ) { // glyph not in generics list, solid by default
             return;
         }
         
@@ -122,7 +122,7 @@ void TryMovePlayerTo(int x, int y)
                 text_area.hud_color = DOS_RED;
             } else {
                 player.inventory[player.num_items++] = thing->tag;
-                *cell = 0;
+                *glyph = 0;
                 sprintf(text_area.hud, "You got a %s!", thing->name);
                 text_area.hud_color = DOS_BRIGHT_GREEN;
             }

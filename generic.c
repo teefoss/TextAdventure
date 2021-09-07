@@ -49,9 +49,9 @@ void LoadMap(Generic * gen)
     FILE * map_file = OpenFileWithTag(gen->tag, ".map");
     
     if ( map_file ) {
-        fread(gen->map, sizeof(cell_t), MAP_SIZE * MAP_SIZE, map_file);
+        fread(gen->map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
         
-        Point position = FindCell(gen->map, CELL_PLAYER);
+        Point position = FindGlyph(gen->map, CELL_PLAYER);
         if ( position.x == -1 ) {
             fprintf(stderr, "Error: %s.map has no player start!\n", gen->tag);
             exit(EXIT_FAILURE);
@@ -117,11 +117,11 @@ Generic * FindGenericWithTag(const char * tag)
 }
 
 
-Generic * FindGenericWithCell(cell_t cell)
+Generic * FindGenericWithGlyph(Glyph glyph)
 {
     Generic * gen = generics;
     for ( int i = 0; i < num_generics; i++, gen++ ) {
-        if ( gen->map[0] == cell ) {
+        if ( gen->map[0] == glyph ) {
             return gen;
         }
     }

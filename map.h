@@ -6,7 +6,7 @@
 
 #define MAP_SIZE 16
 
-typedef u16 cell_t; // one cell in a map
+typedef u16 Glyph; // one cell in a map
 
 #define BG_MASK 0xF000 // background color, 0-15
 #define FG_MASK 0x0F00 // foreground color, 0-15
@@ -14,13 +14,13 @@ typedef u16 cell_t; // one cell in a map
 #define CX_MASK 0x000F // character col
 #define CH_MASK (CY_MASK | CX_MASK) // ascii character
 
-#define BG(cell) ((cell & BG_MASK) >> 12)
-#define FG(cell) ((cell & FG_MASK) >> 8)
-#define CY(cell) ((cell & CY_MASK) >> 4)
-#define CX(cell) ((cell & CX_MASK) >> 0)
-#define CH(cell) ((cell & CH_MASK))
+#define BG(glyph) ((glyph & BG_MASK) >> 12)
+#define FG(glyph) ((glyph & FG_MASK) >> 8)
+#define CY(glyph) ((glyph & CY_MASK) >> 4)
+#define CX(glyph) ((glyph & CX_MASK) >> 0)
+#define CH(glyph) ((glyph & CH_MASK))
 
-typedef cell_t map_t[MAP_SIZE * MAP_SIZE];
+typedef Glyph map_t[MAP_SIZE * MAP_SIZE];
 
 #define WRAP(n, min, max)   \
      if ( n < min) {        \
@@ -35,9 +35,9 @@ typedef struct
     int y;
 } Point;
 
-void PrintCell(cell_t cell, DOS_Console * con, int x, int y);
-cell_t * GetCell(map_t map, int x, int y);
+void PrintGlyph(Glyph glyph, DOS_Console * con, int x, int y);
+Glyph * GetGlyph(map_t map, int x, int y);
 void PrintMap(map_t map, DOS_Console * con);
-Point FindCell(map_t map, cell_t cell);
+Point FindGlyph(map_t map, Glyph glyph);
 
 #endif /* map_h */

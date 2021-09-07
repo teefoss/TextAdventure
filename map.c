@@ -2,16 +2,16 @@
 #include "generic.h"
 
 
-void PrintCell(cell_t cell, DOS_Console * con, int x, int y)
+void PrintGlyph(Glyph glyph, DOS_Console * con, int x, int y)
 {
-    DOS_CSetBackground(con, BG(cell));
-    DOS_CSetForeground(con, FG(cell));
+    DOS_CSetBackground(con, BG(glyph));
+    DOS_CSetForeground(con, FG(glyph));
     DOS_CGotoXY(con, x, y);
-    DOS_CPrintChar(con, CH(cell));
+    DOS_CPrintChar(con, CH(glyph));
 }
 
 
-cell_t * GetCell(map_t map, int x, int y)
+Glyph * GetGlyph(map_t map, int x, int y)
 {
     return &map[y * MAP_SIZE + x];
 }
@@ -21,21 +21,21 @@ void PrintMap(map_t map, DOS_Console * con)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {
-            cell_t * cell = GetCell(map, x, y);
+            Glyph * glyph = GetGlyph(map, x, y);
             
-            if ( *cell != CELL_PLAYER ) {
-                PrintCell(*cell, con, x, y);
+            if ( *glyph != CELL_PLAYER ) {
+                PrintGlyph(*glyph, con, x, y);
             }
         }
     }
 }
 
 
-Point FindCell(map_t map, cell_t cell)
+Point FindGlyph(map_t map, Glyph glyph)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {
-            if ( *GetCell(map, x, y) == cell ) {
+            if ( *GetGlyph(map, x, y) == glyph ) {
                 return (Point){ x, y };
             }
         }
