@@ -103,7 +103,7 @@ void LoadGenerics()
 }
 
 
-Generic * FindGenericWithTag(const char * tag)
+Generic * GetGenericWithTag(const char * tag)
 {
     Generic * gen = generics;
     for ( int i = 0; i < num_generics; i++, gen++ ) {
@@ -117,7 +117,7 @@ Generic * FindGenericWithTag(const char * tag)
 }
 
 
-Generic * FindGenericWithGlyph(Glyph glyph)
+Generic * GetGenericWithGlyph(Glyph glyph)
 {
     Generic * gen = generics;
     for ( int i = 0; i < num_generics; i++, gen++ ) {

@@ -72,7 +72,7 @@ SDL_Rect AreaSizePixels(Area * area)
 
 void PrintCurrentLocation()
 {
-    Generic * gen = FindGenericWithTag(player.location);
+    Generic * gen = GetGenericWithTag(player.location);
         
     DOS_ClearConsole(text_area.console);
     DOS_CPrintString(text_area.console, "You are in %s.\n\n", gen->name);
@@ -100,13 +100,13 @@ void TryMovePlayerTo(int x, int y)
     WRAP(player.y, 0, MAP_SIZE - 1);
 
     // get the glyph we're stepping into
-    Generic * location = FindGenericWithTag(player.location); // TODO: NULL?
+    Generic * location = GetGenericWithTag(player.location); // TODO: NULL?
     Glyph * glyph = GetGlyph(location->map, x, y);
     
     // there's something there
     if ( *glyph ) {
         // check what it is
-        Generic * thing = FindGenericWithGlyph(*glyph);
+        Generic * thing = GetGenericWithGlyph(*glyph);
         
         if ( thing == NULL ) { // glyph not in generics list, solid by default
             return;

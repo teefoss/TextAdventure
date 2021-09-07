@@ -57,7 +57,7 @@ extern Generic generics[];
 extern int num_generics;
 
 void LoadGenerics(void);
-Generic * FindGenericWithTag(const char * tag);
-Generic * FindGenericWithGlyph(Glyph glyph);
+Generic * GetGenericWithTag(const char * tag);
+Generic * GetGenericWithGlyph(Glyph glyph);
 
 #endif /* location_h */
