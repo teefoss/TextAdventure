@@ -9,7 +9,7 @@
 #define CONSOLE_H   21
 
 char file_name[80];
-map_t map;
+Map map;
 Glyph cursor = 0x0902; // character to insert
 unsigned cx, cy; // cursor location
 bool dirty;

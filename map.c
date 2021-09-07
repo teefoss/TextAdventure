@@ -11,13 +11,13 @@ void PrintGlyph(Glyph glyph, DOS_Console * con, int x, int y)
 }
 
 
-Glyph * GetGlyph(map_t map, int x, int y)
+Glyph * GetGlyph(Map map, int x, int y)
 {
     return &map[y * MAP_SIZE + x];
 }
 
 
-void PrintMap(map_t map, DOS_Console * con)
+void PrintMap(Map map, DOS_Console * con)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {
@@ -31,7 +31,7 @@ void PrintMap(map_t map, DOS_Console * con)
 }
 
 
-Point FindGlyph(map_t map, Glyph glyph)
+Point FindGlyph(Map map, Glyph glyph)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {

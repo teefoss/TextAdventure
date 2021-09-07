@@ -20,7 +20,7 @@ typedef u16 Glyph; // one cell in a map
 #define CX(glyph) ((glyph & CX_MASK) >> 0)
 #define CH(glyph) ((glyph & CH_MASK))
 
-typedef Glyph map_t[MAP_SIZE * MAP_SIZE];
+typedef Glyph Map[MAP_SIZE * MAP_SIZE];
 
 #define WRAP(n, min, max)   \
      if ( n < min) {        \
@@ -36,8 +36,8 @@ typedef struct
 } Point;
 
 void PrintGlyph(Glyph glyph, DOS_Console * con, int x, int y);
-Glyph * GetGlyph(map_t map, int x, int y);
-void PrintMap(map_t map, DOS_Console * con);
-Point FindGlyph(map_t map, Glyph glyph);
+Glyph * GetGlyph(Map map, int x, int y);
+void PrintMap(Map map, DOS_Console * con);
+Point FindGlyph(Map map, Glyph glyph);
 
 #endif /* map_h */

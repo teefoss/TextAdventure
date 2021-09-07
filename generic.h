@@ -48,7 +48,7 @@ typedef struct generic
     // if a location, this is automatically loaded from file (tag.map)
     // if an object/actor, the first element is defined in the generics list
     // this is its appearance
-    map_t map;
+    Map map;
     
     void (* action)(int input); // TODO: needed?
 } Generic;
