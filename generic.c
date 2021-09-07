@@ -90,11 +90,15 @@ void LoadText(Generic * gen)
 }
 
 
-void LoadGenerics()
+// just find how many elements are in the generics list
+void InitGenericCount()
 {
     num_generics = (int)(sizeof(generics) / sizeof(generics[0]));
-    printf("num_generics: %d\n", num_generics);
-    
+}
+
+
+void InitGenerics()
+{
     Generic * gen = generics;
     for ( int i = 0; i < num_generics; i++, gen++ ) {
         LoadMap(gen);

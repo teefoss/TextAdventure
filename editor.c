@@ -164,10 +164,9 @@ void PrintCharDisplay(u16 value, const char * title, int x, int y)
     
     DOS_SetForeground(DOS_BRIGHT_GREEN);
 
-    for ( int i = 0; i < num_generics; i++ ) {
-        if ( value && generics[i].map[0] == value ) {
-            DOS_PrintString("%s", generics[i].name);
-        }
+    Generic * gen = GetGenericWithGlyph(value);
+    if ( gen && gen->map[0] != 0 ) {
+        DOS_PrintString("%s", gen->name);
     }
 }
 
@@ -190,6 +189,8 @@ int main(int argc, char ** argv)
             fprintf(stderr, "failed to create map file %s!\n", argv[1]);
         }
     }
+    
+    InitGenericCount();
     
     fclose(map_file);
     

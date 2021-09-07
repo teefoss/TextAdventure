@@ -176,7 +176,8 @@ int main()
     InitArea(&map_area, renderer);
     map_area.window_location.x = text_area_rect.w + SCREEN_MARGIN * 2;
         
-    LoadGenerics();
+    InitGenericCount();
+    InitGenerics();
     
     bool running = true;
     while ( running ) {

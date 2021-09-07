@@ -56,8 +56,13 @@ typedef struct generic
 extern Generic generics[];
 extern int num_generics;
 
-void LoadGenerics(void);
+void InitGenericCount(void);
+void InitGenerics(void);
+
+// aborts program if not found
 Generic * GetGenericWithTag(const char * tag);
+
+// returns NULL if not found
 Generic * GetGenericWithGlyph(Glyph glyph);
 
 #endif /* location_h */
