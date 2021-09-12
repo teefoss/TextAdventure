@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 void Error(char * message, ...)
 {
@@ -13,4 +14,16 @@ void Error(char * message, ...)
     va_end(argptr);
     printf("\n");
     exit(EXIT_FAILURE);
+}
+
+
+void StripExtension(char * path)
+{
+    int length = strlen(path) - 1;
+    
+    while ( length > 0 && path[length] != '.' )
+        length--;
+    
+    if ( length )
+        path[length] = '\0';
 }

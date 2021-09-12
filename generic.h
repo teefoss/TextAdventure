@@ -4,8 +4,12 @@
 #include "map.h"
 
 #define MAX_DIRECTIONS  32
-
 #define GLYPH_PLAYER 0x0902
+
+#define MAPS_EXT    ".map"
+#define MAPS_DIR    "maps/"
+#define DESC_EXT    ".txt"
+#define DESC_DIR    "descriptions/"
 
 typedef enum
 {
@@ -30,24 +34,10 @@ typedef enum
 typedef struct generic
 {
     int id; // all-purpose integer identifier
-    
-    // a unique identifier, used internally
-    const char * tag;
-    
-    // for locations: format for sentence: "You are in [name]"
-    // for items: format is all caps, e.g. "RUSTY KEY"
-    // other things: format is ?
+    const char * tag; // a unique identifier, used internally
     const char * name;
-    
-    // for locations: the location's description, if longer than one line,
-    // define in tag.txt
-    // for items etc, a short description, define in generic list
     char * description;
-    
-    // tags of locations this generic links to
-    const char * links[DIR_COUNT];
-    
-    // for multiple flags, OR them together, FLAG_SOLID|FLAG_COLLECTIBLE
+    const char * links[DIR_COUNT]; // tags of locations this generic links to
     GenericFlags flags;
     
     // if a location, this is automatically loaded from file (tag.map)

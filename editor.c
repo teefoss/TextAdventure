@@ -1,6 +1,6 @@
-#include "editor.h"
 #include "generic.h"
 #include "map.h"
+#include "utility.h"
 
 #include <stdbool.h>
 #include <textmode.h>
@@ -8,123 +8,179 @@
 #define CONSOLE_W   53
 #define CONSOLE_H   21
 
-char file_name[80];
-Map map;
-Glyph cursor = 0x0902; // character to insert
-unsigned cx, cy; // cursor location
+char map_path[0x80]; // path to currently open map file
+Map map; // the map being currently edited
+
+Glyph cursor = GLYPH_PLAYER; // character to insert
+unsigned cx, cy; // cursor location TODO: (G) begin at center of map
+
 bool dirty;
 
 
-void SetCursorCharY(int value)
+// set row and column in character selector
+void SetCursorChar(int x, int y)
 {
-    WRAP(value, 0, 15);
+    WRAP(x, 0, 15);
+    WRAP(y, 0, 15);
+    
     cursor &= ~CY_MASK;
-    cursor |= value << 4;
+    cursor |= y << 4;
+    
+    cursor &= ~CX_MASK;
+    cursor |= x;
 }
 
 
-void SetCursorCharX(int value)
+void OpenMap(char * location_tag)
 {
-    WRAP(value, 0, 15);
-    cursor &= ~CX_MASK;
-    cursor |= value;
+    // make sure the format is 'MAPS_DIR/mapname.map'
+    StripExtension(location_tag); // in case user added an extension
+    strcpy(map_path, MAPS_DIR);
+    strcat(map_path, location_tag);
+    strcat(map_path, MAPS_EXT);
+    
+    FILE * map_file = fopen(map_path, "r+");
+    
+    if ( map_file ) {
+        
+        // read map contents are into 'map'
+        fread(map, sizeof(u16), MAP_SIZE * MAP_SIZE, map_file);
+        printf("Editing %s (%s)\n", location_tag, map_path);
+        
+    } else { // a map with this tag does not exist
+        
+        map_file = fopen(map_path, "w"); // try to create it
+        
+        if ( map_file == NULL ) {
+            Error("ERROR: failed to create map file %s!\n", map_path);
+        }
+    }
+    
+    fclose(map_file);
+}
+
+
+void SaveMap()
+{
+    FILE * map_file = fopen(map_path, "w");
+    
+    if ( map_file == NULL ) {
+        fprintf(stderr, "failed to save map!\n");
+    }
+    
+    fwrite(map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
+    dirty = false;
+    fclose(map_file);
+}
+
+
+bool ProcessCtrlKey(SDL_Keycode key)
+{
+    switch ( key ) {
+        case SDLK_s:
+            SaveMap();
+            break;
+        case SDLK_q:
+            return false;
+        default:
+            break;
+    }
+    
+    return true;
+}
+
+
+bool ProcessShiftKey(SDL_Keycode key)
+{
+    int bg;
+    int fg;
+    
+    switch ( key ) {
+        case SDLK_i: // color up
+            bg = BG(cursor) - 1;
+            WRAP(bg, 0, 15);
+            cursor &= ~BG_MASK;
+            cursor |= bg << 12;
+            break;
+        case SDLK_k: // color down
+            bg = BG(cursor) + 1;
+            WRAP(bg, 0, 15);
+            cursor &= ~BG_MASK;
+            cursor |= bg << 12;
+            break;
+        case SDLK_j: // color left
+            fg = FG(cursor) - 1;
+            WRAP(fg, 0, 15);
+            cursor &= ~FG_MASK;
+            cursor |= fg << 8;
+            break;
+        case SDLK_l: // color right
+            fg = FG(cursor) + 1;
+            WRAP(fg, 0, 15);
+            cursor &= ~FG_MASK;
+            cursor |= fg << 8;
+            break;
+        default:
+            break;
+    }
+    
+    return true;
 }
 
 
 bool ProcessKey(SDL_Keycode key)
 {
     SDL_Keymod mods = SDL_GetModState();
+    
+    if ( mods & KMOD_CTRL ) {
+        return ProcessCtrlKey(key);
+    } else if ( mods & KMOD_SHIFT ) {
+        return ProcessShiftKey(key);
+    }
         
     switch ( key ) {
-        case SDLK_w:
-            cy--;
-            break;
-        case SDLK_a:
-            cx--;
-            break;
-        case SDLK_s:
-            if ( mods & KMOD_CTRL ) {
-                FILE * map_file = fopen(file_name, "w");
-                if ( map_file == NULL ) {
-                    fprintf(stderr, "failed to save map!\n");
-                }
-                
-                fwrite(map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
-                dirty = false;
-            } else {
-                cy++;
-            }
-            break;
-        case SDLK_d:
-            cx++;
-            break;
-        case SDLK_i:
-            if ( mods & KMOD_SHIFT ) {
-                int bg = BG(cursor) - 1;
-                WRAP(bg, 0, 15);
-                cursor &= ~BG_MASK;
-                cursor |= bg << 12;
-            } else {
-                int ch_y = CY(cursor);
-                SetCursorCharY(ch_y - 1);
-            }
-            break;
-        case SDLK_k:
-            if ( mods & KMOD_SHIFT ) {
-                int bg = BG(cursor) + 1;
-                WRAP(bg, 0, 15);
-                cursor &= ~BG_MASK;
-                cursor |= bg << 12;
-            } else {
-                int ch_y = CY(cursor);
-                SetCursorCharY(ch_y + 1);
-            }
-            break;
-        case SDLK_j:
-            if ( mods & KMOD_SHIFT ) {
-                int fg = FG(cursor) - 1;
-                WRAP(fg, 0, 15);
-                cursor &= ~FG_MASK;
-                cursor |= fg << 8;
-            } else {
-                int ch_x = CX(cursor);
-                SetCursorCharX(ch_x - 1);
-            }
-            break;
-        case SDLK_l:
-            if ( mods & KMOD_SHIFT ) {
-                int fg = FG(cursor) + 1;
-                WRAP(fg, 0, 15);
-                cursor &= ~FG_MASK;
-                cursor |= fg << 8;
-            } else {
-                int ch_x = CX(cursor);
-                SetCursorCharX(ch_x + 1);
-            }
-            break;
+            
+        // move cursor
+            
+        case SDLK_w: cy--; break;
+        case SDLK_a: cx--; break;
+        case SDLK_s: cy++; break;
+        case SDLK_d: cx++; break;
+            
+        // move character selector
+            
+        case SDLK_i: SetCursorChar(CX(cursor),     CY(cursor) - 1); break;
+        case SDLK_k: SetCursorChar(CX(cursor),     CY(cursor) + 1); break;
+        case SDLK_j: SetCursorChar(CX(cursor) - 1, CY(cursor));     break;
+        case SDLK_l: SetCursorChar(CX(cursor) + 1, CY(cursor));     break;
+            
+        // pick up map glyph at cursor
+            
         case SDLK_u:
             cursor = *GetMapGlyph(map, cx, cy);
             break;
-        case SDLK_q:
-            if ( mods & KMOD_CTRL ) {
-                return false;
-            }
-        case SDLK_SPACE: {
-            Glyph * glyph = GetMapGlyph(map, cx, cy);
-            *glyph = cursor;
+            
+        // place selected glyph on map
+            
+        case SDLK_SPACE:
+            *GetMapGlyph(map, cx, cy) = cursor;
             dirty = true;
             break;
-        }
+            
+        // erase at cursor location
+            
         case SDLK_e:
             *GetMapGlyph(map, cx, cy) = 0;
             dirty = true;
             break;
+            
         default:
             break;
     }
     
     cx %= MAP_SIZE;
     cy %= MAP_SIZE;
+    
     return true;
 }
 
@@ -174,25 +230,13 @@ void PrintCharDisplay(u16 value, const char * title, int x, int y)
 int main(int argc, char ** argv)
 {
     if ( argc != 2 ) {
-        printf("usage: tqed [map name]\n");
-        return 1;
+        printf("usage: tqed [location tag]\n");
+        printf("(the map extension ("MAPS_EXT") is automatically added)\n");
+        return EXIT_FAILURE;
     }
     
-    strcpy(file_name, argv[1]);
-    FILE * map_file = fopen(file_name, "r+");
-    
-    if ( map_file ) {
-        fread(map, sizeof(u16), MAP_SIZE * MAP_SIZE, map_file);
-    } else {
-        map_file = fopen(argv[1], "w");
-        if ( map_file == NULL ) {
-            fprintf(stderr, "failed to create map file %s!\n", argv[1]);
-        }
-    }
-    
-    InitGenericCount();
-    
-    fclose(map_file);
+    OpenMap(argv[1]);
+    InitGenericCount(); // editor doesn't need to load generics, just get count
     
     DOS_InitScreen(argv[1], CONSOLE_W, CONSOLE_H, DOS_MODE40, 4);
     DOS_SetScreenScale(3);
@@ -208,9 +252,6 @@ int main(int argc, char ** argv)
                     break;
                 case SDL_KEYDOWN:
                     ProcessKey(event.key.keysym.sym);
-                    break;
-                case SDL_TEXTINPUT:
-                    
                     break;
                 default:
                     break;

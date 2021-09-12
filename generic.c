@@ -114,7 +114,14 @@ Generic generics[] =
 FILE * OpenFileWithTag(const char * tag, const char * file_ext)
 {
     char file_name[100] = { 0 };
-    strcpy(file_name, tag);
+    
+    if ( strcmp(file_ext, MAPS_EXT ) == 0 ) {
+        strcpy(file_name, MAPS_DIR);
+    } else if ( strcmp(file_ext, DESC_EXT) == 0 ) {
+        strcpy(file_name, DESC_DIR);
+    }
+    
+    strcat(file_name, tag);
     strcat(file_name, file_ext);
     
     return fopen(file_name, "r");
@@ -123,7 +130,7 @@ FILE * OpenFileWithTag(const char * tag, const char * file_ext)
 
 void LoadMap(Generic * gen)
 {
-    FILE * map_file = OpenFileWithTag(gen->tag, ".map");
+    FILE * map_file = OpenFileWithTag(gen->tag, MAPS_EXT);
     bool glyphs_used[0x10000] = { 0 };
     
     if ( map_file ) {
@@ -146,9 +153,9 @@ void LoadMap(Generic * gen)
 
 
 // try to load description for Generic 'gen' from text file
-void LoadText(Generic * gen)
+void LoadDescription(Generic * gen)
 {
-    FILE * text_file = OpenFileWithTag(gen->tag, ".txt");
+    FILE * text_file = OpenFileWithTag(gen->tag, DESC_EXT);
     
     if ( text_file == NULL ) {
         return; // no description text file for this generic, probably
@@ -185,9 +192,8 @@ void InitGenerics()
         LoadMap(gen);
         
         if ( gen->description == NULL ) {
-            // no description entered in generic.c, try to load it
-            // from .txt file
-            LoadText(gen);
+            // no description entered in generic.c, try to load it from file
+            LoadDescription(gen);
         }
         
         if ( gen->flags & FLAG_LINK ) {
@@ -195,6 +201,7 @@ void InitGenerics()
         }
     }
     
+    // check that there are the same number of links in generics list as enum
     if ( num_directions != DIR_COUNT ) {
         fprintf(stderr, "WARNING: Direction / Generic Link count mismatch!\n");
     }
