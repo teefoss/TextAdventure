@@ -3,9 +3,36 @@
 #include "map.h"
 
 Player player = {
-    .location = "basement",
-    .x = 0, // inited on map load
+    .location = "underground_river",
+    .x = 0, // set by calling EnterLocation()
     .y = 0, // "
     .num_items = 0,
     .inventory = { 0 }
 };
+
+
+void EnterLocation(const char * location_tag)
+{
+    Generic * gen;
+    
+    // update player's location
+    if ( location_tag ) {
+        player.location = location_tag;
+        gen = GetGenericWithTag(location_tag);
+    } else {
+        player.location = "missing_link"; // in case we fucked it
+        gen = GetGenericWithTag("missing_link");
+    }
+
+    // find the player start on this map and move there
+    Generic * player_gen = GetGenericWithTag("player");
+    Point position = FindMapGlyph(gen->map, player_gen->map[0]);
+    player.x = position.x;
+    player.y = position.y;
+}
+
+
+Generic * GetPlayerLocation()
+{
+    return GetGenericWithTag(player.location);
+}

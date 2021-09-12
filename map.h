@@ -35,9 +35,12 @@ typedef struct
     int y;
 } Point;
 
+typedef struct generic Generic;
+
 void PrintGlyph(Glyph glyph, DOS_Console * con, int x, int y);
-Glyph * GetGlyph(Map map, int x, int y);
+Glyph * GetMapGlyph(Map map, int x, int y);
+Generic * GetMapObject(Map map, int x, int y);
 void PrintMap(Map map, DOS_Console * con);
-Point FindGlyph(Map map, Glyph glyph);
+Point FindMapGlyph(Map map, Glyph glyph);
 
 #endif /* map_h */

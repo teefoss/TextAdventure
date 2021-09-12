@@ -11,9 +11,16 @@ void PrintGlyph(Glyph glyph, DOS_Console * con, int x, int y)
 }
 
 
-Glyph * GetGlyph(Map map, int x, int y)
+// get a pointer to glyph on map at x, y
+Glyph * GetMapGlyph(Map map, int x, int y)
 {
     return &map[y * MAP_SIZE + x];
+}
+
+
+Generic * GetMapObject(Map map, int x, int y)
+{
+    return GetGenericWithGlyph( *GetMapGlyph(map, x, y) );
 }
 
 
@@ -21,9 +28,9 @@ void PrintMap(Map map, DOS_Console * con)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {
-            Glyph * glyph = GetGlyph(map, x, y);
+            Glyph * glyph = GetMapGlyph(map, x, y);
             
-            if ( *glyph != CELL_PLAYER ) {
+            if ( *glyph != GLYPH_PLAYER ) {
                 PrintGlyph(*glyph, con, x, y);
             }
         }
@@ -31,11 +38,12 @@ void PrintMap(Map map, DOS_Console * con)
 }
 
 
-Point FindGlyph(Map map, Glyph glyph)
+// Find the location of glyph on map
+Point FindMapGlyph(Map map, Glyph glyph)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {
-            if ( *GetGlyph(map, x, y) == glyph ) {
+            if ( *GetMapGlyph(map, x, y) == glyph ) {
                 return (Point){ x, y };
             }
         }

@@ -1,36 +1,113 @@
 #include "generic.h"
 #include "player.h"
+#include "utility.h"
 
 #include <string.h>
 #include <stdlib.h>
 
 int num_generics;
 
-//
-// GENERICS LIST
-//
-
 Generic generics[] =
 {
+    // LOCATIONS
+
+    // name format: title capitalization
+    
+    {
+        .tag = "basement",
+        .name = "A Basement",
+        .links = {
+            [DIR_EAST] = "underground_river",
+            [DIR_PORTAL] = "underground_river"
+        }
+    },
+    
+    {
+        .tag = "underground_river",
+        .name = "underground cavern",
+        .links = {
+            [DIR_WEST] = "basement"
+        }
+    },
+    
+    {   // in case we make a mistake
+        .tag = "missing_link",
+        .name = "Error!",
+        .description = "You forgot to set a generic's link for this direction!"
+    },
+
+    // OBJECTS
+    
+    // item object name format: all caps
+    // other objects: title capitalization
+    
+    {
+        .tag = "empty",
+        .name = "Empty",
+        .description = "Just empty space",
+        .flags = FLAG_INVISIBLE,
+        .map = { 0x0000 }
+    },
+    
     {
         .tag = "player",
-        .name = "Player",
-        .description = "The spot the player appears at when entering this location",
+        .name = "Player Start",
+        .description = "Where the player appears when entering this location",
         .flags = FLAG_INVISIBLE,
         .map = { 0x0902 },
     },
-    {
-        .tag = "basement",
-        .name = "a basement",
-        .flags = 0,
-    },
+    
     {
         .tag = "rusty_key",
         .name = "RUSTY KEY",
         .description = "It's just a rusty old key",
         .flags = FLAG_COLLECTIBLE,
         .map = { 0x06E5 }
-    }
+    },
+    
+    // LOCATION LINKS
+    
+    // - locations should be flagged with FLAG_LINK
+    // - name and description only appear in map editor
+    {
+        .tag = "north",
+        .name = "North Link",
+        .description = "changes player location on contact",
+        .flags = FLAG_LINK,
+        .map = { 0x0F4E }
+    },
+
+    {
+        .tag = "east",
+        .name = "East Link",
+        .description = "changes player location on contact",
+        .flags = FLAG_LINK,
+        .map = { 0x0F45 }
+    },
+
+    {
+        .tag = "south",
+        .name = "South Link",
+        .description = "changes player location on contact",
+        .flags = FLAG_LINK,
+        .map = { 0x0F53 }
+    },
+
+    {
+        .tag = "west",
+        .name = "West Link",
+        .description = "changes player location on contact",
+        .flags = FLAG_LINK,
+        .map = { 0x0F57 }
+    },
+    
+    {
+        .tag = "portal",
+        .name = "Portal",
+        .description = "changes player location on contact",
+        .flags = FLAG_LINK,
+        .map = { 0x0DEF }
+    },
 };
 
 
@@ -47,50 +124,51 @@ FILE * OpenFileWithTag(const char * tag, const char * file_ext)
 void LoadMap(Generic * gen)
 {
     FILE * map_file = OpenFileWithTag(gen->tag, ".map");
+    bool glyphs_used[0x10000] = { 0 };
     
     if ( map_file ) {
         fread(gen->map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
         
-        Point position = FindGlyph(gen->map, CELL_PLAYER);
+        Point position = FindMapGlyph(gen->map, GLYPH_PLAYER);
         if ( position.x == -1 ) {
-            fprintf(stderr, "Error: %s.map has no player start!\n", gen->tag);
-            exit(EXIT_FAILURE);
+            Error("Error: %s.map has no player start!\n", gen->tag);
+        }        
+    } else {
+        // this generic has no map. check that its glyph (defined in the
+        // generics list) is not a duplicate.
+        if ( glyphs_used[gen->map[0]] ) {
+            Error("ERROR: Generic \"%s\" has a duplicate glyph!");
+        } else {
+            glyphs_used[gen->map[0]] = true;
         }
-        
-        player.x = position.x;
-        player.y = position.y;
     }
 }
 
 
+// try to load description for Generic 'gen' from text file
 void LoadText(Generic * gen)
 {
     FILE * text_file = OpenFileWithTag(gen->tag, ".txt");
     
-    if ( text_file ) {
-        if ( gen->description ) {
-            fprintf(stderr,
-                    "Error: tried to load description text for generic \"%s\" "
-                    "which already has a description!\n", gen->tag);
-            exit(EXIT_FAILURE);
-        }
-        
-        fseek(text_file, 0L, SEEK_END);
-        long size = ftell(text_file);
-        fseek(text_file, 0L, SEEK_SET);
-        
-        gen->description = calloc(size + 1, sizeof(char));
-        fread(gen->description, sizeof(char), size, text_file);
-
-        if ( ferror(text_file) != 0 ) {
-            fprintf(stderr, "Error reading %s.txt!\n", gen->tag);
-            exit(EXIT_FAILURE);
-        }
+    if ( text_file == NULL ) {
+        return; // no description text file for this generic, probably
+    }
+    
+    // get the file's size
+    fseek(text_file, 0L, SEEK_END);
+    long size = ftell(text_file);
+    fseek(text_file, 0L, SEEK_SET);
+    
+    gen->description = calloc(size + 1, sizeof(char));
+    fread(gen->description, sizeof(char), size, text_file);
+    
+    if ( ferror(text_file) != 0 ) {
+        Error("Error reading %s.txt!\n", gen->tag);
     }
 }
 
 
-// just find how many elements are in the generics list
+// find how many elements are in the generics list
 void InitGenericCount()
 {
     num_generics = (int)(sizeof(generics) / sizeof(generics[0]));
@@ -99,16 +177,36 @@ void InitGenericCount()
 
 void InitGenerics()
 {
+    InitGenericCount();
+    
+    int num_directions = 0;
     Generic * gen = generics;
     for ( int i = 0; i < num_generics; i++, gen++ ) {
         LoadMap(gen);
-        LoadText(gen);
+        
+        if ( gen->description == NULL ) {
+            // no description entered in generic.c, try to load it
+            // from .txt file
+            LoadText(gen);
+        }
+        
+        if ( gen->flags & FLAG_LINK ) {
+            gen->id = num_directions++;
+        }
+    }
+    
+    if ( num_directions != DIR_COUNT ) {
+        fprintf(stderr, "WARNING: Direction / Generic Link count mismatch!\n");
     }
 }
 
 
 Generic * GetGenericWithTag(const char * tag)
 {
+    if ( tag == NULL ) {
+        return NULL;
+    }
+    
     Generic * gen = generics;
     for ( int i = 0; i < num_generics; i++, gen++ ) {
         if ( strcmp(tag, gen->tag) == 0 ) {
@@ -116,8 +214,8 @@ Generic * GetGenericWithTag(const char * tag)
         }
     }
     
-    fprintf(stderr, "Error: generic with tag \"%s\" not found!\n", tag);
-    exit(EXIT_FAILURE);
+    Error("ERROR: generic with tag \"%s\" not found!\n", tag);
+    return NULL;
 }
 
 

@@ -103,20 +103,20 @@ bool ProcessKey(SDL_Keycode key)
             }
             break;
         case SDLK_u:
-            cursor = *GetGlyph(map, cx, cy);
+            cursor = *GetMapGlyph(map, cx, cy);
             break;
         case SDLK_q:
             if ( mods & KMOD_CTRL ) {
                 return false;
             }
         case SDLK_SPACE: {
-            Glyph * glyph = GetGlyph(map, cx, cy);
+            Glyph * glyph = GetMapGlyph(map, cx, cy);
             *glyph = cursor;
             dirty = true;
             break;
         }
         case SDLK_e:
-            *GetGlyph(map, cx, cy) = 0;
+            *GetMapGlyph(map, cx, cy) = 0;
             dirty = true;
             break;
         default:
@@ -244,7 +244,7 @@ int main(int argc, char ** argv)
                     DOS_PrintString("%X", x);
                 }
                 DOS_GotoXY(x + map_x, y + map_y);
-                PrintChar(x == cx && y == cy ? cursor : *GetGlyph(map, x, y));
+                PrintChar(x == cx && y == cy ? cursor : *GetMapGlyph(map, x, y));
             }
         }
 
@@ -254,7 +254,7 @@ int main(int argc, char ** argv)
 
         char buf[32] = { 0 };
         snprintf(buf, 32, "Map (%2d,%2d)", cx, cy);
-        PrintCharDisplay(*GetGlyph(map, cx, cy), buf, map_x, DOS_GetY() + 1);
+        PrintCharDisplay(*GetMapGlyph(map, cx, cy), buf, map_x, DOS_GetY() + 1);
 
         DOS_SetBackground(DOS_GRAY);
                 

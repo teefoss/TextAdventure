@@ -3,6 +3,8 @@
 
 #define MAX_INVENTORY_ITEMS 16
 
+#include "generic.h"
+
 typedef struct
 {
     const char * location;
@@ -12,5 +14,8 @@ typedef struct
 } Player;
 
 extern Player player;
+
+void EnterLocation(const char * tag);
+Generic * GetPlayerLocation(void);
 
 #endif /* player_h */

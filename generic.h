@@ -3,7 +3,9 @@
 
 #include "map.h"
 
-#define CELL_PLAYER 0x0902
+#define MAX_DIRECTIONS  32
+
+#define GLYPH_PLAYER 0x0902
 
 typedef enum
 {
@@ -19,13 +21,16 @@ typedef enum
     DIR_EAST,
     DIR_SOUTH,
     DIR_WEST,
-    // other directions? down/up, portal?
+    DIR_PORTAL,
+    // add new direction just before DIR_COUNT
     DIR_COUNT
 } Direction;
 
 // locations, actors, items, links, and anything else
 typedef struct generic
 {
+    int id; // all-purpose integer identifier
+    
     // a unique identifier, used internally
     const char * tag;
     
@@ -42,7 +47,7 @@ typedef struct generic
     // tags of locations this generic links to
     const char * links[DIR_COUNT];
     
-    // for multiple flags, OR them together, FLAG_SOLID|FLAG_COLLETIBLE
+    // for multiple flags, OR them together, FLAG_SOLID|FLAG_COLLECTIBLE
     GenericFlags flags;
     
     // if a location, this is automatically loaded from file (tag.map)
@@ -59,7 +64,8 @@ extern int num_generics;
 void InitGenericCount(void);
 void InitGenerics(void);
 
-// aborts program if not found
+// returns NULL if tag is NULL
+// aborts program if non-NULL tag not found
 Generic * GetGenericWithTag(const char * tag);
 
 // returns NULL if not found

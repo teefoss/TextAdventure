@@ -1,27 +1,25 @@
 #include "generic.h"
 #include "map.h"
 #include "player.h"
+#include "utility.h"
 
 #include <stdio.h>
 #include <textmode.h>
 
 #define WINDOW_SCALE 2
-#define SCREEN_MARGIN 8
+#define SCREEN_MARGIN (DOS_CHAR_WIDTH * WINDOW_SCALE)
+#define TQ_MODE DOS_MODE40
+#define TEXT_AREA_W 32
 
 // a rectangle area of the screen with its own console
 typedef struct
 {
     DOS_Console * console;
     SDL_Point window_location;
-    
-    int hud_color;
-    char hud[100];
-    
+        
     // console info
-    int mode;
     int w;
     int h;
-    int scale;
 } Area;
 
 
@@ -31,10 +29,8 @@ Area text_area = {
         .x = SCREEN_MARGIN,
         .y = SCREEN_MARGIN,
     },
-    .mode = DOS_MODE80,
-    .w = 40,
-    .h = 20,
-    .scale = 1
+    .w = 32,
+    .h = 16,
 };
 
 
@@ -44,11 +40,35 @@ Area map_area = {
         .x = 0, // initted in main
         .y = SCREEN_MARGIN
     },
-    .mode = DOS_MODE40,
     .w = MAP_SIZE,
     .h = MAP_SIZE,
-    .scale = 2
 };
+
+Area message_area = {
+    .console = NULL,
+    .window_location = {
+        .x = SCREEN_MARGIN,
+        .y = 0, // initted in main
+    },
+    .w = TEXT_AREA_W,
+    .h = 1
+};
+
+SDL_Window * window;
+SDL_Renderer * renderer;
+bool fullscreen = false;
+
+
+void ToggleFullscreen()
+{
+    if ( fullscreen ) {
+        SDL_SetWindowFullscreen(window, 0);
+    } else {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+    
+    fullscreen = !fullscreen;
+}
 
 
 void RenderArea(Area * area)
@@ -63,8 +83,8 @@ void RenderArea(Area * area)
 SDL_Rect AreaSizePixels(Area * area)
 {
     SDL_Rect r;
-    r.w = area->w * DOS_CHAR_WIDTH * area->scale;
-    r.h = area->h * area->mode * area->scale;
+    r.w = area->w * DOS_CHAR_WIDTH * WINDOW_SCALE;
+    r.h = area->h * TQ_MODE * WINDOW_SCALE;
     
     return r;
 }
@@ -75,68 +95,107 @@ void PrintCurrentLocation()
     Generic * gen = GetGenericWithTag(player.location);
         
     DOS_ClearConsole(text_area.console);
-    DOS_CPrintString(text_area.console, "You are in %s.\n\n", gen->name);
+    DOS_CPrintString(text_area.console, "%s.\n\n", gen->name);
     DOS_CPrintString(text_area.console, "%s", gen->description);
-    DOS_CSetForeground(text_area.console, text_area.hud_color);
-    DOS_CPrintString(text_area.console, "\n\n%s", text_area.hud);
-
+    
     DOS_ClearConsole(map_area.console);
     PrintMap(gen->map, map_area.console);
-    PrintGlyph(CELL_PLAYER, map_area.console, player.x, player.y);
+    PrintGlyph(GLYPH_PLAYER, map_area.console, player.x, player.y);
 }
 
 
-void InitArea(Area * area, SDL_Renderer * renderer)
+void InitArea(Area * area)
 {
-    area->console = DOS_CreateConsole(renderer, area->w, area->h, area->mode);
+    area->console = DOS_CreateConsole(renderer, area->w, area->h, TQ_MODE);
     DOS_CSetCursorType(area->console, DOS_CURSOR_NONE);
-    DOS_CSetScale(area->console, area->scale);
+    DOS_CSetScale(area->console, WINDOW_SCALE);
 }
 
 
-void TryMovePlayerTo(int x, int y)
+// print a message to message area
+void Message(DOS_Color color, const char * format, ...)
 {
-    WRAP(player.x, 0, MAP_SIZE - 1); // correct weird values
-    WRAP(player.y, 0, MAP_SIZE - 1);
-
-    // get the glyph we're stepping into
-    Generic * location = GetGenericWithTag(player.location); // TODO: NULL?
-    Glyph * glyph = GetGlyph(location->map, x, y);
+    DOS_Console * con = message_area.console;
     
-    // there's something there
-    if ( *glyph ) {
-        // check what it is
-        Generic * thing = GetGenericWithGlyph(*glyph);
+    va_list args[2]; // one for the string length, one for format
+    va_start(args[0], format);
+    va_copy(args[1], args[0]);
+    
+    // get the length of the format string
+    int len = vsnprintf(NULL, 0, format, args[0]);
+    char * buffer = calloc(len + 1, sizeof(*buffer));
+    vsnprintf(buffer, len + 1, format, args[1]);
+    
+    va_end(args[0]);
+    va_end(args[1]);
+    
+    DOS_ClearConsole(con);
+    DOS_CSetForeground(con, color);
+    DOS_CPrintString(con, buffer);
+}
+
+
+// map_glyph: a pointer to the map's glyph for this item
+void CollectItem(Generic * item)
+{
+    if ( player.num_items == MAX_INVENTORY_ITEMS ) {
+        Message(DOS_BRIGHT_RED, "You can't carry any more!");
+    } else {
+        Generic * location = GetPlayerLocation();
+        Glyph * map_glyph = GetMapGlyph(location->map, player.x, player.y);
+
+        // add to player inventory and remove from map
+        player.inventory[player.num_items++] = item->tag;
+        *map_glyph = 0;
         
-        if ( thing == NULL ) { // glyph not in generics list, solid by default
-            return;
-        }
-        
-        if ( thing->flags & FLAG_SOLID ) {
-            return;
-        }
-        
-        if ( thing->flags & FLAG_COLLECTIBLE ) {
-            if ( player.num_items == MAX_INVENTORY_ITEMS ) {
-                strcpy(text_area.hud, "You can't carry any more!");
-                text_area.hud_color = DOS_RED;
-            } else {
-                player.inventory[player.num_items++] = thing->tag;
-                *glyph = 0;
-                sprintf(text_area.hud, "You got a %s!", thing->name);
-                text_area.hud_color = DOS_BRIGHT_GREEN;
-            }
-        }
+        Message(FG(item->map[0]), "Picked up %s", item->name);
+    }
+}
+
+
+// we have stepped onto a thing, examine its flags and do stuff accordingly
+// map_glyph: a pointer to the map's glyph for this thing
+void ContactThing(Generic * thing)
+{
+    if ( thing->flags & FLAG_COLLECTIBLE ) {
+        CollectItem(thing);
+    } else if ( thing->flags & FLAG_LINK ) {
+        Generic * current_location = GetPlayerLocation();
+        EnterLocation(current_location->links[thing->id]);
+    }
+}
+
+
+void TryMovePlayerTo(int try_x, int try_y)
+{
+    // correct weird values by wrapping the new location
+    WRAP(try_x, 0, MAP_SIZE - 1);
+    WRAP(try_y, 0, MAP_SIZE - 1);
+
+    // get the thing we're stepping into
+    Generic * location = GetPlayerLocation();
+    Generic * thing = GetMapObject(location->map, try_x, try_y);
+    
+    // not in generics list, its solid by default
+    if ( thing == NULL ) {
+        return;
     }
     
-    player.x = x;
-    player.y = y;
+    // we can step onto it, move and make contact
+    if ( !(thing->flags & FLAG_SOLID) ) {
+        player.x = try_x;
+        player.y = try_y;
+        ContactThing(thing);
+    }
 }
 
 
 void ProcessGameKeydown(SDL_Keycode key)
 {
     switch ( key ) {
+        case SDLK_BACKSLASH:
+            ToggleFullscreen();
+            break;
         case SDLK_UP:
             TryMovePlayerTo(player.x, player.y - 1);
             break;
@@ -164,20 +223,23 @@ int main()
     
     SDL_Rect text_area_rect = AreaSizePixels(&text_area);
     SDL_Rect map_area_rect = AreaSizePixels(&map_area);
+    SDL_Rect msg_area_rect = AreaSizePixels(&message_area);
     
     int w = text_area_rect.w + map_area_rect.w + SCREEN_MARGIN * 3;
-    int h = text_area_rect.h + SCREEN_MARGIN * 2;
-    SDL_Window * window = SDL_CreateWindow("TQ", 0, 0, w * WINDOW_SCALE, h * WINDOW_SCALE, 0);
-    
-    SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
+    int h = text_area_rect.h + msg_area_rect.h + SCREEN_MARGIN * 3;
+    window = SDL_CreateWindow("TQ", 0, 0, w * WINDOW_SCALE, h * WINDOW_SCALE, 0);
+    renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderSetLogicalSize(renderer, w, h);
     
-    InitArea(&text_area, renderer);
-    InitArea(&map_area, renderer);
+    InitArea(&text_area);
+    InitArea(&map_area);
+    InitArea(&message_area);
+    
     map_area.window_location.x = text_area_rect.w + SCREEN_MARGIN * 2;
-        
-    InitGenericCount();
+    message_area.window_location.y = text_area_rect.h + SCREEN_MARGIN * 2;
+    
     InitGenerics();
+    EnterLocation("basement");
     
     bool running = true;
     while ( running ) {
@@ -195,13 +257,15 @@ int main()
             }
         }
         
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        // TEMP?: off-black, to see area bounds
+        SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
         SDL_RenderClear(renderer);
         
         PrintCurrentLocation();
         
         RenderArea(&text_area);
         RenderArea(&map_area);
+        RenderArea(&message_area);
         
         SDL_RenderPresent(renderer);
         
