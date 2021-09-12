@@ -11,7 +11,7 @@
 char map_path[0x80]; // path to currently open map file
 Map map; // the map being currently edited
 
-Glyph cursor = GLYPH_PLAYER; // character to insert
+Glyph cursor; // character to insert
 unsigned cx, cy; // cursor location TODO: (G) begin at center of map
 
 bool dirty;
@@ -237,6 +237,7 @@ int main(int argc, char ** argv)
     
     OpenMap(argv[1]);
     InitGenericCount(); // editor doesn't need to load generics, just get count
+    cursor = GetGlyph("player");
     
     DOS_InitScreen(argv[1], CONSOLE_W, CONSOLE_H, DOS_MODE40, 4);
     DOS_SetScreenScale(3);

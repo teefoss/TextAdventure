@@ -25,8 +25,7 @@ void EnterLocation(const char * location_tag)
     }
 
     // find the player start on this map and move there
-    Generic * player_gen = GetGenericWithTag("player");
-    Point position = FindMapGlyph(gen->map, player_gen->map[0]);
+    MapPoint position = FindMapGlyph(gen->map, GetGlyph("player"));
     player.x = position.x;
     player.y = position.y;
 }

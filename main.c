@@ -2,62 +2,10 @@
 #include "map.h"
 #include "player.h"
 #include "utility.h"
+#include "screen.h"
 
 #include <stdio.h>
 #include <textmode.h>
-
-#define WINDOW_SCALE 2
-#define SCREEN_MARGIN (DOS_CHAR_WIDTH * WINDOW_SCALE)
-#define TQ_MODE DOS_MODE40
-#define TEXT_AREA_W 32
-
-// a rectangle area of the screen with its own console
-typedef struct
-{
-    DOS_Console * console;
-    SDL_Point window_location;
-        
-    // console info
-    int w;
-    int h;
-} Area;
-
-
-Area text_area = {
-    .console = NULL,
-    .window_location = {
-        .x = SCREEN_MARGIN,
-        .y = SCREEN_MARGIN,
-    },
-    .w = 32,
-    .h = 16,
-};
-
-
-Area map_area = {
-    .console = NULL,
-    .window_location = {
-        .x = 0, // initted in main
-        .y = SCREEN_MARGIN
-    },
-    .w = MAP_SIZE,
-    .h = MAP_SIZE,
-};
-
-Area message_area = {
-    .console = NULL,
-    .window_location = {
-        .x = SCREEN_MARGIN,
-        .y = 0, // initted in main
-    },
-    .w = TEXT_AREA_W,
-    .h = 1
-};
-
-SDL_Window * window;
-SDL_Renderer * renderer;
-bool fullscreen = false;
-
 
 void ToggleFullscreen()
 {
@@ -70,26 +18,6 @@ void ToggleFullscreen()
     fullscreen = !fullscreen;
 }
 
-
-void RenderArea(Area * area)
-{
-    DOS_RenderConsole
-    (   area->console,
-        area->window_location.x,
-        area->window_location.y );
-}
-
-
-SDL_Rect AreaSizePixels(Area * area)
-{
-    SDL_Rect r;
-    r.w = area->w * DOS_CHAR_WIDTH * WINDOW_SCALE;
-    r.h = area->h * TQ_MODE * WINDOW_SCALE;
-    
-    return r;
-}
-
-
 void PrintCurrentLocation()
 {
     Generic * gen = GetGenericWithTag(player.location);
@@ -101,14 +29,6 @@ void PrintCurrentLocation()
     DOS_ClearConsole(map_area.console);
     PrintMap(gen->map, map_area.console);
     PrintGlyph(GLYPH_PLAYER, map_area.console, player.x, player.y);
-}
-
-
-void InitArea(Area * area)
-{
-    area->console = DOS_CreateConsole(renderer, area->w, area->h, TQ_MODE);
-    DOS_CSetCursorType(area->console, DOS_CURSOR_NONE);
-    DOS_CSetScale(area->console, WINDOW_SCALE);
 }
 
 

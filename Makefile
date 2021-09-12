@@ -2,13 +2,20 @@ CC		= clang
 CFLAGS	= -Wall -Wextra -Wshadow -Werror -g
 LINK	= -lSDL2 -ltextmode
 DIAGOPT = -fno-show-column -fno-caret-diagnostics
-OBJ		= generic.o map.o player.o utility.o
+
+# objects needed by both editor and game
+OBJ = \
+	generic.o \
+	map.o \
+	player.o \
+	utility.o \
+	glyph.o
 
 CFLAGS += $(DIAGOPT)
 
 all: game editor
 
-game: main.o $(OBJ)
+game: main.o screen.o $(OBJ)
 	$(CC) -o $@ $^ $(LINK)
 
 editor: editor.o $(OBJ)

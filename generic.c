@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 int num_generics;
+bool glyph_is_invisible[NUM_GLYPHS];
 
 Generic generics[] =
 {
@@ -134,15 +135,18 @@ void LoadMap(Generic * gen)
     bool glyphs_used[0x10000] = { 0 };
     
     if ( map_file ) {
+        
         fread(gen->map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
         
-        Point position = FindMapGlyph(gen->map, GLYPH_PLAYER);
+        // make sure the level has a player start
+        MapPoint position = FindMapGlyph(gen->map, GetGlyph("player"));
         if ( position.x == -1 ) {
             Error("Error: %s.map has no player start!\n", gen->tag);
-        }        
-    } else {
-        // this generic has no map. check that its glyph (defined in the
-        // generics list) is not a duplicate.
+        }
+        
+    } else { // this generic has no map, it's a single object
+        
+        // check that its glyph (defined in generics list) isn't a duplicate.
         if ( glyphs_used[gen->map[0]] ) {
             Error("ERROR: Generic \"%s\" has a duplicate glyph!");
         } else {
@@ -188,7 +192,9 @@ void InitGenerics()
     
     int num_directions = 0;
     Generic * gen = generics;
+    
     for ( int i = 0; i < num_generics; i++, gen++ ) {
+        
         LoadMap(gen);
         
         if ( gen->description == NULL ) {
@@ -199,9 +205,13 @@ void InitGenerics()
         if ( gen->flags & FLAG_LINK ) {
             gen->id = num_directions++;
         }
+        
+        if ( gen->flags & FLAG_INVISIBLE ) {
+            glyph_is_invisible[gen->map[0]] = true;
+        }
     }
     
-    // check that there are the same number of links in generics list as enum
+    // check that there are the same number of links in generics list as in enum
     if ( num_directions != DIR_COUNT ) {
         fprintf(stderr, "WARNING: Direction / Generic Link count mismatch!\n");
     }
@@ -236,4 +246,17 @@ Generic * GetGenericWithGlyph(Glyph glyph)
     }
     
     return NULL;
+}
+
+
+Generic * GetMapObject(Map map, int x, int y)
+{
+    return GetGenericWithGlyph( *GetMapGlyph(map, x, y) );
+}
+
+
+Glyph GetGlyph(const char * tag)
+{
+    Generic * gen = GetGenericWithTag(tag);
+    return gen->map[0];
 }

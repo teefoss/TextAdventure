@@ -4,7 +4,6 @@
 #include "map.h"
 
 #define MAX_DIRECTIONS  32
-#define GLYPH_PLAYER 0x0902
 
 #define MAPS_EXT    ".map"
 #define MAPS_DIR    "maps/"
@@ -50,6 +49,7 @@ typedef struct generic
 
 extern Generic generics[];
 extern int num_generics;
+extern bool glyph_is_invisible[NUM_GLYPHS];
 
 void InitGenericCount(void);
 void InitGenerics(void);
@@ -60,5 +60,8 @@ Generic * GetGenericWithTag(const char * tag);
 
 // returns NULL if not found
 Generic * GetGenericWithGlyph(Glyph glyph);
+
+Generic * GetMapObject(Map map, int x, int y);
+Glyph GetGlyph(const char * tag);
 
 #endif /* location_h */
