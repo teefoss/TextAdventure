@@ -28,7 +28,7 @@ void PrintCurrentLocation()
     
     DOS_ClearConsole(map_area.console);
     PrintMap(gen->map, map_area.console);
-    PrintGlyph(GLYPH_PLAYER, map_area.console, player.x, player.y);
+    PrintGlyph(GetGlyph("player"), map_area.console, player.x, player.y);
 }
 
 
