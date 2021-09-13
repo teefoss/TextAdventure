@@ -7,14 +7,36 @@
 #include <stdio.h>
 #include <textmode.h>
 
+// print location name, description, and map
 void PrintCurrentLocation()
 {
     Generic * gen = GetPlayerLocation();
         
     DOS_ClearConsole(text_area.console);
-    DOS_CPrintString(text_area.console, "%s\n\n", gen->name);
-    DOS_CPrintString(text_area.console, "%s", gen->description);
     
+    // location name
+    
+    DOS_CPrintString(text_area.console, "%s\n\n", gen->name);
+    
+    // description, with word wrapping!
+    
+    const size_t size = TEXT_AREA_W * MAP_SIZE;
+    char buf[size] = { 0 };
+    strncpy(buf, gen->description, size);
+    
+    char * sep = " \t";
+    char * word = strtok(buf, sep);
+        
+    while ( word ) {
+        
+        if ( TEXT_AREA_W - DOS_CGetX(text_area.console) < (int)strlen(word) ) {
+            DOS_CPrintString(text_area.console, "\n");
+        }
+        
+        DOS_CPrintString(text_area.console, "%s ", word);
+        word = strtok(NULL, sep);
+    }
+        
     DOS_ClearConsole(map_area.console);
     PrintMap(gen->map, map_area.console);
     PrintGlyph(GetGlyph("player"), map_area.console, player.x, player.y);
@@ -124,33 +146,15 @@ void ProcessGameKeydown(SDL_Keycode key)
 
 
 int main()
-{
-    if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
-        Error("ERROR: SDL_Init() failed: %s", SDL_GetError());
-    }
-    
-    SDL_Rect text_area_rect = AreaSizePixels(&text_area);
-    SDL_Rect map_area_rect = AreaSizePixels(&map_area);
-    SDL_Rect msg_area_rect = AreaSizePixels(&message_area);
-    
-    int w = text_area_rect.w + map_area_rect.w + SCREEN_MARGIN * 3;
-    int h = text_area_rect.h + msg_area_rect.h + SCREEN_MARGIN * 3;
-    window = SDL_CreateWindow("TQ", 0, 0, w * WINDOW_SCALE, h * WINDOW_SCALE, 0);
-    renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_RenderSetLogicalSize(renderer, w, h);
-    
-    InitAreaConsole(&text_area);
-    InitAreaConsole(&map_area);
-    InitAreaConsole(&message_area);
-    
-    map_area.window_location.x = text_area_rect.w + SCREEN_MARGIN * 2;
-    message_area.window_location.y = text_area_rect.h + SCREEN_MARGIN * 2;
-    
+{    
+    InitGameScreen();
     InitGenerics();
     EnterLocation("basement");
     
     bool running = true;
+    
     while ( running ) {
+        
         SDL_Event event;
         while ( SDL_PollEvent(&event) ) {
             switch (event.type) {
@@ -165,8 +169,13 @@ int main()
             }
         }
         
-        // TEMP?: off-black, to see area bounds
-        SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
+//#define SHOW_BOUNDS
+#ifdef SHOW_BOUNDS
+        SDL_SetRenderDrawColor(renderer, 32, 32, 32, 255);
+#else
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+#endif
+
         SDL_RenderClear(renderer);
         
         PrintCurrentLocation();
@@ -179,12 +188,6 @@ int main()
         
         DOS_LimitFrameRate(25);
     };
-    
-    DOS_FreeConsole(text_area.console);
-    DOS_FreeConsole(map_area.console);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    
+        
 	return 0;
 }
