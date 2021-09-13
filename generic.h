@@ -15,7 +15,7 @@ typedef enum
     FLAG_SOLID          = 0x0001, // level objects
     FLAG_INVISIBLE      = 0x0002, // object is not drawn
     FLAG_COLLECTIBLE    = 0x0004, // items, player can pick it up
-    FLAG_LINK           = 0x0008  // ?
+    FLAG_EXIT           = 0x0008  // changes player location
 } GenericFlags;
 
 typedef enum

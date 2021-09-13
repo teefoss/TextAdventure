@@ -16,6 +16,6 @@ typedef struct
 
 Glyph * GetMapGlyph(Map map, int x, int y);
 void PrintMap(Map map, DOS_Console * con);
-MapPoint FindMapGlyph(Map map, Glyph glyph);
+MapPoint GetGlyphPosition(Map map, Glyph glyph);
 
 #endif /* map_h */

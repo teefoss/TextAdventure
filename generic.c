@@ -25,7 +25,7 @@ Generic generics[] =
     
     {
         .tag = "underground_river",
-        .name = "underground cavern",
+        .name = "Underground Cavern",
         .links = {
             [DIR_WEST] = "basement"
         }
@@ -68,37 +68,37 @@ Generic generics[] =
     
     // LOCATION LINKS
     
-    // - locations should be flagged with FLAG_LINK
+    // - locations should be flagged with FLAG_EXIT
     // - name and description only appear in map editor
     {
         .tag = "north",
-        .name = "North Link",
+        .name = "North Exit",
         .description = "changes player location on contact",
-        .flags = FLAG_LINK,
+        .flags = FLAG_EXIT,
         .map = { 0x0F4E }
     },
 
     {
         .tag = "east",
-        .name = "East Link",
+        .name = "East Exit",
         .description = "changes player location on contact",
-        .flags = FLAG_LINK,
+        .flags = FLAG_EXIT,
         .map = { 0x0F45 }
     },
 
     {
         .tag = "south",
-        .name = "South Link",
+        .name = "South Exit",
         .description = "changes player location on contact",
-        .flags = FLAG_LINK,
+        .flags = FLAG_EXIT,
         .map = { 0x0F53 }
     },
 
     {
         .tag = "west",
-        .name = "West Link",
+        .name = "West Exit",
         .description = "changes player location on contact",
-        .flags = FLAG_LINK,
+        .flags = FLAG_EXIT,
         .map = { 0x0F57 }
     },
     
@@ -106,7 +106,7 @@ Generic generics[] =
         .tag = "portal",
         .name = "Portal",
         .description = "changes player location on contact",
-        .flags = FLAG_LINK,
+        .flags = FLAG_EXIT,
         .map = { 0x0DEF }
     },
 };
@@ -139,7 +139,7 @@ void LoadMap(Generic * gen)
         fread(gen->map, sizeof(Glyph), MAP_SIZE * MAP_SIZE, map_file);
         
         // make sure the level has a player start
-        MapPoint position = FindMapGlyph(gen->map, GetGlyph("player"));
+        MapPoint position = GetGlyphPosition(gen->map, GetGlyph("player"));
         if ( position.x == -1 ) {
             Error("Error: %s.map has no player start!\n", gen->tag);
         }
@@ -202,7 +202,7 @@ void InitGenerics()
             LoadDescription(gen);
         }
         
-        if ( gen->flags & FLAG_LINK ) {
+        if ( gen->flags & FLAG_EXIT ) {
             gen->id = num_directions++;
         }
         

@@ -23,7 +23,7 @@ void PrintMap(Map map, DOS_Console * con)
 
 
 // Find the location of glyph on map
-MapPoint FindMapGlyph(Map map, Glyph glyph)
+MapPoint GetGlyphPosition(Map map, Glyph glyph)
 {
     for ( int y = 0; y < MAP_SIZE; y++ ) {
         for ( int x = 0; x < MAP_SIZE; x++ ) {

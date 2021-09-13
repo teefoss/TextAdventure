@@ -24,8 +24,9 @@ extern Area text_area;
 extern Area map_area;
 extern Area message_area;
 
-void InitArea(Area * area);
+void InitAreaConsole(Area * area);
 SDL_Rect AreaSizePixels(Area * area);
 void RenderArea(Area * area);
+void ToggleFullscreen(void);
 
 #endif /* screen_h */

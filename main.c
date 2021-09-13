@@ -7,23 +7,12 @@
 #include <stdio.h>
 #include <textmode.h>
 
-void ToggleFullscreen()
-{
-    if ( fullscreen ) {
-        SDL_SetWindowFullscreen(window, 0);
-    } else {
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    }
-    
-    fullscreen = !fullscreen;
-}
-
 void PrintCurrentLocation()
 {
-    Generic * gen = GetGenericWithTag(player.location);
+    Generic * gen = GetPlayerLocation();
         
     DOS_ClearConsole(text_area.console);
-    DOS_CPrintString(text_area.console, "%s.\n\n", gen->name);
+    DOS_CPrintString(text_area.console, "%s\n\n", gen->name);
     DOS_CPrintString(text_area.console, "%s", gen->description);
     
     DOS_ClearConsole(map_area.console);
@@ -79,7 +68,7 @@ void ContactThing(Generic * thing)
 {
     if ( thing->flags & FLAG_COLLECTIBLE ) {
         CollectItem(thing);
-    } else if ( thing->flags & FLAG_LINK ) {
+    } else if ( thing->flags & FLAG_EXIT ) {
         Generic * current_location = GetPlayerLocation();
         EnterLocation(current_location->links[thing->id]);
     }
@@ -137,8 +126,7 @@ void ProcessGameKeydown(SDL_Keycode key)
 int main()
 {
     if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
-        fprintf(stderr, "SDL_Init() failed: %s\n", SDL_GetError());
-        return EXIT_FAILURE;
+        Error("ERROR: SDL_Init() failed: %s", SDL_GetError());
     }
     
     SDL_Rect text_area_rect = AreaSizePixels(&text_area);
@@ -151,9 +139,9 @@ int main()
     renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderSetLogicalSize(renderer, w, h);
     
-    InitArea(&text_area);
-    InitArea(&map_area);
-    InitArea(&message_area);
+    InitAreaConsole(&text_area);
+    InitAreaConsole(&map_area);
+    InitAreaConsole(&message_area);
     
     map_area.window_location.x = text_area_rect.w + SCREEN_MARGIN * 2;
     message_area.window_location.y = text_area_rect.h + SCREEN_MARGIN * 2;

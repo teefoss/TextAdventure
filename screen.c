@@ -37,6 +37,18 @@ Area message_area = {
 };
 
 
+void ToggleFullscreen()
+{
+    if ( fullscreen ) {
+        SDL_SetWindowFullscreen(window, 0);
+    } else {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+    
+    fullscreen = !fullscreen;
+}
+
+
 void RenderArea(Area * area)
 {
     DOS_RenderConsole
@@ -56,7 +68,7 @@ SDL_Rect AreaSizePixels(Area * area)
 }
 
 
-void InitArea(Area * area)
+void InitAreaConsole(Area * area)
 {
     area->console = DOS_CreateConsole(renderer, area->w, area->h, TQ_MODE);
     DOS_CSetCursorType(area->console, DOS_CURSOR_NONE);

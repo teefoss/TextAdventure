@@ -8,13 +8,26 @@
 #define CONSOLE_W   53
 #define CONSOLE_H   21
 
+typedef enum
+{
+    PAGE_MAIN,
+    PAGE_ITEM_LIST,
+    PAGE_NUM_SCREENS
+} EditorPage;
+
 char map_path[0x80]; // path to currently open map file
 Map map; // the map being currently edited
 
 Glyph cursor; // character to insert
-unsigned cx, cy; // cursor location TODO: (G) begin at center of map
+unsigned cx = MAP_SIZE / 2;
+unsigned cy = MAP_SIZE / 2;
 
-bool dirty;
+bool dirty = false;
+EditorPage page = PAGE_MAIN;
+
+Generic * objects[1000];
+int num_objects = 0;
+int selected_object = 0;
 
 
 // set row and column in character selector
@@ -28,6 +41,17 @@ void SetCursorChar(int x, int y)
     
     cursor &= ~CX_MASK;
     cursor |= x;
+}
+
+
+void SetCursorGlyph(Glyph glyph)
+{
+    cursor = glyph;
+    for ( int i = 0; i < num_objects; i++ ) {
+        if ( objects[i]->map[0] == glyph ) {
+            selected_object = i;
+        }
+    }
 }
 
 
@@ -177,11 +201,35 @@ bool ProcessKey(SDL_Keycode key)
         default:
             break;
     }
-    
+        
     cx %= MAP_SIZE;
     cy %= MAP_SIZE;
     
     return true;
+}
+
+
+void ProcessItemListKey(SDL_Keycode key)
+{
+    switch ( key ) {
+        case SDLK_DOWN:
+        case SDLK_s:
+            selected_object++;
+            break;
+        case SDLK_UP:
+        case SDLK_w:
+            selected_object--;
+            break;
+        case SDLK_RETURN:
+            cursor = objects[selected_object]->map[0];
+            page = PAGE_MAIN;
+            DOS_SwitchPage(page);
+            break;
+        default:
+            break;
+    }
+    
+    WRAP(selected_object, 0, num_objects - 1);
 }
 
 
@@ -243,8 +291,26 @@ int main(int argc, char ** argv)
     DOS_SetScreenScale(3);
     DOS_SetBorderColor(DOS_GRAY);
     
+    DOS_SwitchPage(PAGE_ITEM_LIST);
+    DOS_SetCursorType(DOS_CURSOR_NONE);
+    
+    // make a list of all object generics (actors, items, things)
+    
+    Generic * g = generics;
+    for ( int i = 0; i < num_generics && i < 1000; i++, g++ ) {
+        
+        // those that have a glyph defined in generics.c are objects
+        if ( g->map[0]) {
+            objects[num_objects++] = g;
+        }
+    }
+
+    SetCursorGlyph(GetGlyph("player"));
+    
+    
     bool running = true;
     while ( running ) {
+        
         SDL_Event event;
         while ( SDL_PollEvent(&event) ) {
             switch ( event.type ) {
@@ -252,12 +318,32 @@ int main(int argc, char ** argv)
                     running = false;
                     break;
                 case SDL_KEYDOWN:
-                    ProcessKey(event.key.keysym.sym);
+                    switch ( event.key.keysym.sym ) {
+                        case SDLK_1:
+                            page = PAGE_MAIN;
+                            DOS_SwitchPage(page);
+                            break;
+                        case SDLK_2:
+                            page = PAGE_ITEM_LIST;
+                            DOS_SwitchPage(page);
+                            break;
+                        default:
+                            if ( page == PAGE_MAIN ) {
+                                ProcessKey(event.key.keysym.sym); // TODO: rename
+                            } else if ( page == PAGE_ITEM_LIST ) {
+                                ProcessItemListKey(event.key.keysym.sym);
+                            }
+                            break;
+                    }
                     break;
                 default:
                     break;
             }
         }
+        
+        // TODO: only print when necessary!
+        
+        DOS_SwitchPage(PAGE_MAIN);
         
         DOS_ClearScreen();
         DOS_SetBackground(DOS_GRAY);
@@ -363,8 +449,47 @@ int main(int argc, char ** argv)
                 
         DOS_SetForeground(DOS_BRIGHT_WHITE);
         DOS_GotoXY(cx + map_x, cy + map_y);
+
+        // ITEMS LIST
+        
+        DOS_SwitchPage(PAGE_ITEM_LIST);
+        
+        DOS_ClearScreen();
+        DOS_PrintString("OBJECTS (%d) (Press ENTER to select)\n\n", selected_object);
+
+        // TODO: absolutely hacked it
+        
+        const int menu_list_h = 16;
+        int menu_offset = selected_object - menu_list_h + 1;
+        if ( menu_offset < 0 ) {
+            menu_offset = 0;
+        }
+        
+        Generic * obj = objects[menu_offset];
+        for ( int i = 0; i < menu_list_h; i++, obj++ ) {
+            if ( i - menu_offset > num_objects - 1 ) {
+                break;
+            }
+            DOS_PrintString("  ");
+            PrintChar(obj->map[0]);
+            if ( i + menu_offset == selected_object ) {
+                DOS_SetForeground(DOS_BRIGHT_WHITE);
+            } else {
+                DOS_SetForeground(DOS_WHITE);
+            }
+            DOS_PrintString(" %s\n", obj->name);
+        }
+        
+        DOS_GotoXY(1, selected_object + 2 - menu_offset);
+        DOS_SetForeground(DOS_YELLOW);
+        DOS_PrintChar(DOS_RIGHTARROW);
+        
+        
+        DOS_SwitchPage(page);
         
         DOS_DrawScreen();
         DOS_LimitFrameRate(25);
     }
+        
+    return 0;
 }
